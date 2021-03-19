@@ -1,0 +1,145 @@
+<html>
+
+<head>
+	<title>WikiGolf</title>
+	<style>
+		.header {
+			border-radius: 20%;
+			background-color: rgb(184, 220, 253);
+			font-size: 30pt;
+			line-height: 1.4;
+		}
+
+		a {
+			cursor: pointer;
+			border-radius: 20%;
+			background-color: rgb(162, 253, 120);
+			line-height: 1.4;
+		}
+
+		.path {
+			border-radius: 20%;
+			background-color: rgb(255, 209, 110);
+			font-size: 20pt;
+			line-height: 1.4;
+		}
+	</style>
+</head>
+
+<body>
+
+	<center>
+		<span class='header' id="strokes"></span>&nbsp;&nbsp;
+		<span class='header' id="title"></span>
+		<hr />
+		<div id="links"></div>
+		<hr />
+		<div id="path"></div>
+	</center>
+
+	<script>
+		// tolino forbids: default parameters, const, for of
+
+		var start = window.location.search.replace("?", "") || "Earth"
+
+		var strokes = 0
+
+		var costs = {
+			a: 1, b: 3, c: 3, d: 2, e: 1, f: 4, g: 2, h: 4, i: 1, j: 8, k: 5, l: 1, m: 3,
+			n: 1, o: 1, p: 3, q: 10, r: 1, s: 1, t: 1, u: 1, v: 4, w: 4, x: 8, y: 4, z: 10,
+			A: 3, B: 5, C: 5, D: 4, E: 3, F: 6, G: 4, H: 6, I: 3, J: 10, K: 7, L: 3, M: 5,
+			N: 3, O: 3, P: 5, Q: 12, R: 3, S: 3, T: 3, U: 3, V: 6, W: 6, X: 10, Y: 6, Z: 12,
+			"0": 20, "1": 20, "2": 20, "3": 20, "4": 20, "5": 20, "6": 20, "7": 20, "8": 20, "9": 20,
+			" ": 20, "-": 30, "–": 40, "(": 50, ")": 50,
+		}
+
+		function cost(txt) {
+			var sum = 0
+
+			for (var i = 0; i < txt.length; i++) {
+				var c = txt[i]
+				if (c in costs) {
+					sum += costs[c] + 20
+				}
+				else {
+					sum += 100
+				}
+			}
+
+			if (txt.length < 7) {
+				sum += (7 - txt.length) * 20
+			}
+
+			return sum
+		}
+
+		var HttpClient = function () {
+			this.get = function (aUrl, aCallback) {
+				var anHttpRequest = new XMLHttpRequest();
+				anHttpRequest.onreadystatechange = function () {
+					if (anHttpRequest.readyState == 4 && anHttpRequest.status == 200)
+						aCallback(anHttpRequest.responseText);
+				}
+
+				anHttpRequest.open("GET", aUrl, true);
+				anHttpRequest.send(null);
+			}
+		}
+
+		function getLinks(title, cont, list) {
+			var client = new HttpClient();
+			client.get(
+				'https://simple.wikipedia.org/w/api.php?action=query&titles='
+				+ title
+				+ '&prop=links&pllimit=max&format=json&origin=*'
+				+ cont,
+				function (response) {
+					var data = JSON.parse(response)
+					for (var p in data.query.pages) {
+						page = data.query.pages[p]
+						for (var l in page.links) {
+							link = page.links[l]
+							if (link.ns == 0) {
+								list.push({ s: link.title, c: cost(link.title) })
+							}
+						}
+					}
+
+					if (data.continue) {
+						getLinks(title, '&plcontinue=' + data.continue.plcontinue, list)
+					}
+					else {
+						list.sort(function (a, b) { return a.c - b.c })
+						for (var i = 0; i < list.length; i++) {
+							var size = 24 * Math.exp(-i / 300)
+							if (size < 6) { size = 6 }
+							list[i] = "<a style='font-size:" + size + "pt'"
+								+ " onclick='javascript:wiki(\"" + list[i].s + "\")'>&nbsp;"
+								+ list[i].s.replace(" ", "&nbsp;") + "&nbsp;</a>"
+						}
+						var links
+						if (list.length == 0) {
+							links = "<p style='font-size:120pt;'>X</p>"
+						}
+						else {
+							links = list.join(" ")
+						}
+
+						document.getElementById("strokes").innerHTML = "&nbsp;" + strokes++ + "&nbsp;"
+						document.getElementById("title").innerHTML = "&nbsp;" + title + "&nbsp;"
+						document.getElementById("links").innerHTML = links
+						document.getElementById("path").innerHTML +=
+							" <span class='path'>&nbsp;" + title.replace(" ", "&nbsp;") + "&nbsp;</span> "
+					}
+				});
+		}
+
+		function wiki(title) {
+			getLinks(title, "", [])
+		}
+
+		wiki(start)
+	</script>
+</body>
+
+</html>
