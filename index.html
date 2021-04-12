@@ -40,7 +40,9 @@
 	<script>
 		// tolino forbids: default parameters, const, for of
 
-		var start = window.location.search.replace("?", "") || "Earth"
+		var params = window.location.search.replace("?", "") || "simple:Earth"
+		var language = params.split(":")[0]
+		var start = params.split(":")[1]
 
 		var strokes = 0
 
@@ -89,14 +91,14 @@
 		function getLinks(title, cont, list) {
 			var client = new HttpClient();
 			client.get(
-				'https://simple.wikipedia.org/w/api.php?action=query&titles='
+				'https://' + language + '.wikipedia.org/w/api.php?action=query&titles='
 				+ title
 				+ '&prop=links&pllimit=max&format=json&origin=*'
 				+ cont,
 				function (response) {
 					var data = JSON.parse(response)
 					for (var p in data.query.pages) {
-						page = data.query.pages[p]
+						var page = data.query.pages[p]
 						for (var l in page.links) {
 							link = page.links[l]
 							if (link.ns == 0) {
